@@ -1,13 +1,13 @@
 const http = require('http');
 const mineflayer = require('mineflayer');
 
-// TẠO WEB SERVER ĐỂ GIỮ BOT SỐNG 24/7 (Bắt buộc nếu chạy trên Render)
+// TẠO WEB SERVER ĐỂ GIỮ BOT SỐNG 24/7
 http.createServer((req, res) => {
   res.write("Bot KingMC dang online 24/7!");
   res.end();
 }).listen(process.env.PORT || 3000);
 
-// CẤU HÌNH TÀI KHOẢN MỚI CỦA BẠN
+// CẤU HÌNH TÀI KHOẢN
 const ACCOUNT = { username: 'stt03sh', password: 'stt03sh2705' };
 const FOOD_NAMES = ['bread', 'cooked_beef', 'cooked_porkchop', 'cooked_chicken', 'apple', 'baked_potato', 'golden_carrot'];
 let da_chuyen_cum = false;
@@ -29,7 +29,7 @@ function startBot() {
     username: ACCOUNT.username,
     version: '1.20.4',
     brand: 'vanilla',
-    viewDistance: 'tiny', // Tối ưu giảm dung lượng ram cho điện thoại/host free
+    viewDistance: 'tiny',
     physicsEnabled: true
   });
 
@@ -37,7 +37,14 @@ function startBot() {
     console.log('[+] Da mo cong ket noi socket thanh cong!');
   });
 
-  // Xử lý dịch chuyển đổi cụm
+  // Lắng nghe chat để theo dõi trạng thái thực tế
+  bot.on('message', (message) => {
+    const text = message.toString();
+    if (text.includes('Dang nhap thanh cong') || text.includes('Welcome')) {
+      console.log('[+] Chinh thuc dang nhap thanh cong vao server!');
+    }
+  });
+
   bot.on('forcedMove', () => {
     if (da_chuyen_cum && !da_gui_warp) {
       da_gui_warp = true; 
@@ -46,7 +53,6 @@ function startBot() {
         bot.chat('/warp afk');
         console.log('[+] Da gui lenh di chuyen khu AFK: /warp afk. Hoan tat!');
         
-        // Vòng lặp kiểm tra đói để tự ăn
         if (!checkEatInterval) {
           checkEatInterval = setInterval(async () => {
             if (!bot || !bot.inventory) return;
@@ -63,7 +69,6 @@ function startBot() {
           }, 7000);
         }
 
-        // Vòng lặp nhảy chống bị kick AFK
         setInterval(() => {
           if (!bot || !bot.setControlState) return;
           bot.setControlState('jump', true);
@@ -77,16 +82,27 @@ function startBot() {
     if (da_chuyen_cum) return;
     if (isLoggingIn) return;
     isLoggingIn = true;
-    console.log('[+] Nhan vat xuat hien tai sanh cho chinh.');
+    console.log('[+] Nhan varsity xuat hien tai sanh cho chinh.');
+    
     setTimeout(() => {
       if (!bot) return;
       bot.chat('/login ' + ACCOUNT.password);
       console.log('[>] Da go lenh dang nhap.');
+      
+      // Tăng thời gian chờ lên 8 giây để tránh lag server
       setTimeout(() => {
         if (da_chuyen_cum || !bot) return;
         bot.chat('/menu');
-        console.log('[>] Da go lenh mo menu.');
-      }, 5000);
+        console.log('[>] Da go lenh mo menu lần 1.');
+        
+        // Dự phòng: Gõ lại lệnh menu sau 5 giây nếu lần 1 thất bại
+        setTimeout(() => {
+          if (da_chuyen_cum || !bot) return;
+          bot.chat('/menu');
+          console.log('[>] Auto gõ lại /menu phòng hờ delay.');
+        }, 5000);
+        
+      }, 8000);
     }, 4000);
   });
 
@@ -105,14 +121,14 @@ function startBot() {
           }
         }, 1000);
       } catch (err) {
-        console.log('[Loi] Khong the tuong tac voi menu:', err.message);
+        console.log('[Loi] Khong the tuong tact voi menu:', err.message);
         da_chuyen_cum = false;
       }
     }, 3000);
   });
 
   bot.on('end', (reason) => {
-    console.log('[-] Bot bi mat ket noi (' + reason + '). Tu dong dang nhap lai sau 15 giay...');
+    console.log('[-] Bot bi mat ket noi (' + reason + '). Tu dung dang nhap lai sau 15 giay...');
     if (checkEatInterval) clearInterval(checkEatInterval);
     setTimeout(() => startBot(), 15000);
   });
